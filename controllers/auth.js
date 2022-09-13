@@ -4,6 +4,7 @@ const _ = require("lodash");
 const bcrypt = require("bcryptjs");
 const { json } = require("express");
 const user = require("../models/user");
+require("dotenv").config();
 
 // signup
 exports.signup = (req, res) => {
@@ -11,12 +12,7 @@ exports.signup = (req, res) => {
     email,
     password,
     firstName,
-   //  Phone,
-   //  address,
-   //  country,
-   //  State,
-   //  city,
-   //  zipCode,
+    todos
   } = req.body;
   const passRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,16}$/;
   const countryCodeRegex = /^(\+?\d{1,3}|\d{1,4})$/;
@@ -29,43 +25,33 @@ exports.signup = (req, res) => {
       !email ||
       !password ||
       !firstName
-      // !Phone ||
-      // !address ||
-      // !country ||
-      // !State ||
-      // !city ||
-      // !zipCode
     ) {
       return res.json({ msg: "not all fields have been entered" });
     }
-    // //Country Code validation
-    // if(!countryCodeRegex.test(countrycode)){
-    //    return res.status(400).json({msg: "Invalid country code"})
-    // }
-    // //mobile number validation
+    //mobile number validation
     // if(!mobileRegex.test(mobile)){
     //    return res.status(400).json({msg: "Invalid Mobile Number"})
     // }
-    // if(user){
-    //    return res.status(400).json({error: "User already exists!!"});
-    // }
-    // //password validation
-    // if(password.length < 6 ) {
-    //    return res.status(400).json({msg: "password should contain atleast 6 characters"})
-    // }
-    // if(!passRegex.test(password)){
-    //    return res.status(400).json({msg: "weak password, should have one capital and a special character ex : @,#,!,$,%,^,&,*"})
-    // }
-    // if(password !== passCheck){
-    //    return res.status(400).json({msg: "password and confirm password not matched!"})
-    // }
+    if(user){
+       return res.status(400).json({error: "User already exists!!"});
+    }
+    //password validation
+    if(password.length < 6 ) {
+       return res.status(400).json({msg: "password should contain atleast 6 characters"})
+    }
+    if(!passRegex.test(password)){
+       return res.status(400).json({msg: "weak password, should have one capital and a special character ex : @,#,!,$,%,^,&,*"})
+    }
+    if(password !== passCheck){
+       return res.status(400).json({msg: "password and confirm password not matched!"})
+    }
 
     // const token = jwt.sign({email, password}, process.env.JWT_ACC_ACTIVATE, {expiresIn: '30m'})
-    console.log(req.body, "<<<<<<<<<<<<<<<<<<<");
     const newUser = new User({
       email,
       password,
       firstName,
+      todos
       // Phone,
       // address,
       // country,
@@ -80,6 +66,7 @@ exports.signup = (req, res) => {
       } else {
         return res.json({
           email: email,
+          id:success._id
         });
       }
     });
@@ -121,15 +108,33 @@ exports.signin = (req, res) => {
    //    });
    //  }
 
-    //  const token = jwt.sign({ _id: user._id }, process.env.JWT_SIGNIN_KEY, {
-    //    expiresIn: "28d",
-    //  });
+     const token = jwt.sign({ _id: user._id }, process.env.JWT_SIGNIN_KEY, {
+       expiresIn: "28d",
+     });
 
     const { _id, firstName, email } = user;
 
     res.json({
-      // token,
+      token,
       user: { _id, firstName, email },
     });
   });
 };
+
+exports.logOutUser = async(req, res) =>{
+  // const {tokan, userId} = req.body
+  try {
+    const { userId } = req.params;
+    const ress = jwt.verify(userId, process.env.JWT_SIGNIN_KEY)
+    const resps = await User.findOne({ _id: ress._id });
+    if (resps) {
+      res.json({
+        msg: "Loggout successfully",
+      });
+    }
+  } catch (e) {
+    res.json({
+      error: e,
+    });
+  }
+}

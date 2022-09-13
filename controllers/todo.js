@@ -1,45 +1,56 @@
 const todos = require("../models/todo");
 const { json } = require("express");
 const Todos = require("../models/todo");
+const User = require("../models/user");
+const jwt = require("jsonwebtoken");
 
-exports.addtodos = (req, res) => {
-  const { taskName, description, category, status } = req.body;
+exports.addtodos = async (req, res) => {
+  const { id, taskName, description, category, status } = req.body;
 
-  Todos.findOne({ taskName: taskName }).exec((err, user) => {
-    if (!taskName || !description || !category) {
-      return res.json({
-        msg: `${!taskName || !description || !category} not provided`,
-      });
-    }
+  // User.findOne({ id: id }).exec((err, user) => {
+  //   if (!taskName || !description || !category) {
+  //     return res.json({
+  //       msg: `${!taskName || !description || !category} not provided`,
+  //     });
+  //   }
 
-    const addtodo = new todos({
-      taskName,
-      description,
-      category,
-      status,
-    });
-
-    addtodo.save((err, success) => {
-      if (err) {
-        return err;
-      } else {
-        return res.json({
-          msg: "todo added sucessfully",
-        });
-      }
-    });
+  const addtodo = new todos({
+    taskName,
+    description,
+    category,
+    status,
   });
+  const todoId = await addtodo.save();
+  const setId = await User.updateOne(
+    { _id: id },
+    { $push: {todos:todoId._id} },
+    { new: true }
+  );
+  //((err, success) => {
+  //   todoId = success._id
+  if (!setId) {
+    return err;
+  } else {
+    return res.json({
+      msg: "todo added sucessfully",
+    });
+  }
+  // });
+
+  // });
 };
 
 exports.getTodos = async (req, res) => {
+  const { authid: tokan } = req.headers;
+  const ress = jwt.verify(tokan, process.env.JWT_SIGNIN_KEY)
   try {
-    const response = await Todos.find({});
-    if (response) {
-      res.send(response);
+    const userResponse = await User.findOne({ _id: ress._id }).populate("todos");
+    if (userResponse) {
+      res.json(userResponse.todos);
     }
   } catch (e) {
     res.json({
-      msg: e,
+      msg: e,ress
     });
   }
 };
@@ -87,7 +98,7 @@ exports.updateTodosData = async (req, res) => {
       { _id: id },
       // {taskName,description,category},
       req.body,
-      { new: true },
+      { new: true }
     );
     if (resps) {
       res.json({

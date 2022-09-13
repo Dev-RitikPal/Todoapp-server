@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema(
       required: true,
       // minLength: 6
     },
+    todos:
+      [{ type: mongoose.Schema.Types.ObjectId, ref: 'Todos' }],
     // country:{
     //    type: String,
     //    // required: true,
